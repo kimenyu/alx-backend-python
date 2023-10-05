@@ -1,16 +1,9 @@
 #!/usr/bin/env python3
-"""string antonations
+"""Write a type-annotated function concat that takes a string str1
+and a string str2 as arguments and returns a concatenated string
 """
 
 
 def concat(str1: str, str2: str) -> str:
-    """concat two strings
-
-    Args:
-        str1 (str): arg 1 as a string antonation 
-        str2 (str): arg 1 as a string antonation
-
-    Returns:
-        str: concatinates str1 and str2 and retturs a string
-    """
+    """Concatenate two strings"""
     return str1 + str2
