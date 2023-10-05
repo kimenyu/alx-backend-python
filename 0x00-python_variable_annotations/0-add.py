@@ -4,4 +4,5 @@ This module provides runtime support for type hints."""
 
 
 def add(a: float, b: float) -> float:
+    """add two floats"""
     return a + b
