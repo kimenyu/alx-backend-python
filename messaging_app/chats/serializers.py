@@ -8,49 +8,49 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['user_id', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'created_at']
-        read_only_fields = ['created_at']
+        
+    def get_full_name(self, obj):
+        return f"{obj.first_name} {obj.last_name}".strip()
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender = UserSerializer(read_only=True)
+    sender = UserSerializer(read_only=True)  # Nested UserSerializer for the sender
 
     class Meta:
         model = Message
         fields = ['message_id', 'sender', 'message_body', 'sent_at']
-        read_only_fields = ['message_id', 'sent_at']
+        
+    def get_sender_name(self, obj):
+        return f"{obj.sender.first_name} {obj.sender.last_name}".strip()
 
-    def create(self, validated_data):
-        sender = self.context['request'].user
-        message = Message.objects.create(sender=sender, **validated_data)
-        return message
-
-
-class ConversationListSerializer(serializers.ModelSerializer):
-    participants = UserSerializer(many=True, read_only=True)
-    last_message = serializers.PrimaryKeyRelatedField(read_only=True)
-
-    class Meta:
-        model = Conversation
-        fields = ['conversation_id', 'participants', 'last_message', 'created_at']
-        read_only_fields = ['conversation_id', 'created_at']
+    def validate_message_body(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Message body cannot be empty")
+        return value
 
 
-class ConversationDetailSerializer(serializers.ModelSerializer):
-    participants = UserSerializer(many=True, read_only=True)
-    messages = MessageSerializer(many=True, read_only=True, source='message_set')
+class ConversationSerializer(serializers.ModelSerializer):
+    participants = UserSerializer(many=True, read_only=True)  # Nested UserSerializer for participants
+    messages = MessageSerializer(many=True, read_only=True)  # Nested MessageSerializer for messages
 
     class Meta:
         model = Conversation
         fields = ['conversation_id', 'participants', 'messages', 'created_at']
-        read_only_fields = ['conversation_id', 'created_at']
 
-    def create(self, validated_data):
-        participants_data = self.context['request'].data.get('participants', [])
-        conversation = Conversation.objects.create()
-        conversation.participants.set(participants_data)
-        return conversation
+    def get_participant_names(self, obj):
+        return [f"{participant.first_name} {participant.last_name}".strip() for participant in obj.participants.all()]
+    
+    def get_participant_count(self, obj):
+        return obj.participants.count()
 
-    def update(self, instance, validated_data):
-        participants_data = self.context['request'].data.get('participants', [])
-        instance.participants.set(participants_data)
-        return instance
+    def validate_participants(self, value):
+        if len(value) < 2:
+            raise serializers.ValidationError("A conversation must have at least 2 participants")
+        return value
+
+    
