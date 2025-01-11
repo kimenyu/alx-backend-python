@@ -10,11 +10,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender_email = serializers.EmailField(source='sender_id.email', read_only=True)
+    sender_name = serializers.CharField(source='sender_id.first_name', read_only=True)
 
     class Meta:
         model = Message
-        fields = ['message_id', 'sender_email', 'conversation', 'message_body', 'sent_at']
+        fields = ['message_id', 'sender_name', 'conversation', 'message_body', 'sent_at']
         read_only_fields = ['message_id', 'sent_at']
         
     def create(self, validated_data):
@@ -36,7 +36,8 @@ class MessageSerializer(serializers.ModelSerializer):
 
 class ConversationSerializer(serializers.ModelSerializer):
     participants = UserSerializer(many=True, read_only=True)
-    messages = MessageSerializer(many=True, required=False)
+    messages = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Conversation
@@ -90,3 +91,10 @@ class ConversationSerializer(serializers.ModelSerializer):
         if len(data['participants_id']) < 2:
             raise serializers.ValidationError("A conversation must have at least 2 participants.")
         return data
+    
+    def get_messages(self, obj):
+        """
+        Custom method to retrieve messages in the conversation.
+        """
+        messages = obj.messages.all()  # `related_name='messages'` used in the Message model
+        return MessageSerializer(messages, many=True).data
