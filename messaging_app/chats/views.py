@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from .models import Conversation, Message
 from .serializers import ConversationSerializer, MessageSerializer
 from rest_framework import filters
+from .permissions import IsParticipantOfConversation
+from .filters import MessageFilter
 
 
 class ConversationViewSet(viewsets.ModelViewSet):
@@ -13,7 +15,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     """
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsParticipantOfConversation]
     filter_backends = [filters.SearchFilter]
     search_fields = ['participants_id__email']  # Allows searching conversations by participant email
 
@@ -76,14 +78,28 @@ class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = (filters.DjangoFilterBackend,)
+    filterset_class = MessageFilter
 
     def get_queryset(self):
         """
-        Filter messages to only show those from conversations where the user is a participant
+        Filter messages to only show those from conversations where the user is a participant.
+        Apply additional filters like user and time range (if any).
         """
-        return self.queryset.filter(
-            conversation__participants_id=self.request.user
-        )
+        queryset = self.queryset.filter(conversation__participants_id=self.request.user)
+        
+        # Filter by conversation participant (if provided)
+        participant_id = self.request.query_params.get('participant_id')
+        if participant_id:
+            queryset = queryset.filter(sender_id=participant_id)
+
+        # Filter by date range (if provided)
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        if start_date and end_date:
+            queryset = queryset.filter(sent_at__range=[start_date, end_date])
+
+        return queryset
 
     def perform_create(self, serializer):
         """
