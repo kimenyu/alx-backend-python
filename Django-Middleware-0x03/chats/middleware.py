@@ -88,3 +88,23 @@ class OffensiveLanguageMiddleware:
         else:
             ip = request.META.get('REMOTE_ADDR')
         return ip
+
+
+class RolePermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Define restricted paths
+        restricted_paths = ['/admin-action/']
+
+        # Check if the user is trying to access a restricted path
+        if any(request.path.startswith(path) for path in restricted_paths):
+            # Check if the user is authenticated and has the correct role
+            user = request.user
+            if not user.is_authenticated or user.role not in ['admin', 'moderator']:
+                return HttpResponseForbidden("You do not have permission to access this action.")
+        
+        # Proceed with the request
+        response = self.get_response(request)
+        return response
