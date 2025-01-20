@@ -1,22 +1,24 @@
-from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.response import Response
 from .models import User, Message, Conversation
 from .serializers import MessageSerializer, ConversationSerializer
-from rest_framework import filters
+from rest_framework.filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
-    filterset_fields = ['conversation']  # Add filters for filtering by conversation ID
-    ordering_fields = ['sent_at']  # Allow ordering by 'sent_at' (e.g., to get most recent messages)
+    filter_backends = (DjangoFilterBackend, OrderingFilter)
+    filterset_fields = ['conversation']  # Filter by conversation
+    ordering_fields = ['sent_at']  # Allow ordering by sent_at (to get most recent first)
     ordering = ['sent_at']  # Default ordering by sent_at
     
     def create(self, request, *args, **kwargs):
         sender = request.user
         request.data['sender'] = sender.id  # Ensure sender is set properly
-        return super().create(request, *args, **kwargs)
+        response = super().create(request, *args, **kwargs)
+        return Response(response.data, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
         conversation_id = request.query_params.get('conversation_id', None)
@@ -36,7 +38,8 @@ class ConversationViewSet(viewsets.ModelViewSet):
         if request.user.id not in participants:
             participants.append(request.user.id)
         request.data['participants'] = participants
-        return super().create(request, *args, **kwargs)
+        response = super().create(request, *args, **kwargs)
+        return Response(response.data, status=status.HTTP_201_CREATED)
 
     def list(self, request, *args, **kwargs):
         queryset = Conversation.objects.filter(participants=request.user)
