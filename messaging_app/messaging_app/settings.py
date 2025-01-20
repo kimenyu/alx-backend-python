@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'chats',  # Add the chats app to the installed apps
     'django_filters',  # Add Django filters to the installed apps
+    'rest_framework_nested',  # Add DRF nested to the installed apps
 ]
 
 MIDDLEWARE = [
