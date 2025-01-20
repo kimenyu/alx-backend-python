@@ -1,25 +1,29 @@
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import viewsets
 from rest_framework.response import Response
-from rest_framework import status
 from .models import User, Message, Conversation
 from .serializers import MessageSerializer, ConversationSerializer
+from rest_framework import filters
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
     serializer_class = MessageSerializer
-
+    filter_backends = (DjangoFilterBackend, filters.OrderingFilter)
+    filterset_fields = ['conversation']  # Add filters for filtering by conversation ID
+    ordering_fields = ['sent_at']  # Allow ordering by 'sent_at' (e.g., to get most recent messages)
+    ordering = ['sent_at']  # Default ordering by sent_at
+    
     def create(self, request, *args, **kwargs):
         sender = request.user
         request.data['sender'] = sender.id  # Ensure sender is set properly
         return super().create(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        # Optionally filter messages by conversation ID (if provided)
         conversation_id = request.query_params.get('conversation_id', None)
         if conversation_id:
             queryset = Message.objects.filter(conversation__conversation_id=conversation_id)
         else:
-            queryset = Message.objects.filter(sender=request.user)  # Only messages sent by the logged-in user
+            queryset = Message.objects.filter(sender=request.user)
         serializer = MessageSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -30,12 +34,11 @@ class ConversationViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         participants = request.data.get('participants', [])
         if request.user.id not in participants:
-            participants.append(request.user.id)  # Add logged-in user if not already present
+            participants.append(request.user.id)
         request.data['participants'] = participants
         return super().create(request, *args, **kwargs)
 
     def list(self, request, *args, **kwargs):
-        # Filter conversations by the logged-in user
         queryset = Conversation.objects.filter(participants=request.user)
         serializer = ConversationSerializer(queryset, many=True)
         return Response(serializer.data)

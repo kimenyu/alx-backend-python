@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'chats',  # Add the chats app to the installed apps
+    'django_filters',  # Add Django filters to the installed apps
 ]
 
 MIDDLEWARE = [
