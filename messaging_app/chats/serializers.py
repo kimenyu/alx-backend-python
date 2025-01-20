@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
-    sender_name = serializers.EmailField(source='sender.email', read_only=True)
+    sender_name = serializers.CharField(source='sender.first_name', read_only=True)
 
     class Meta:
         model = Message
