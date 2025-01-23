@@ -1,110 +1,103 @@
+import datetime
 import logging
 from django.http import HttpResponseForbidden
-from datetime import datetime, timedelta
-from django.http import HttpResponseForbidden
+from django.http import JsonResponse
 
 class RequestLoggingMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         # Set up the logger
-        self.logger = logging.getLogger('django')
-        handler = logging.FileHandler('request_logs.log')  # Log to a file
-        handler.setFormatter(logging.Formatter('%(message)s'))
-        self.logger.addHandler(handler)
-        self.logger.setLevel(logging.INFO)
+        logging.basicConfig(
+            filename="requests.log",
+            level=logging.INFO,
+            format="%(message)s"
+        )
 
     def __call__(self, request):
-        # Get the user making the request (or 'Anonymous' if not logged in)
-        user = request.user if request.user.is_authenticated else 'Anonymous'
+        # Extract user and request path
+        user = request.user if request.user.is_authenticated else "Anonymous"
+        log_message = f"{datetime.datetime.now()} - User: {user} - Path: {request.path}"
         
-        # Log the request information
-        log_message = f"{datetime.now()} - User: {user} - Path: {request.path}"
-        self.logger.info(log_message)
+        # Log the request
+        logging.info(log_message)
         
-        # Pass the request to the next middleware or view
+        # Continue processing the request
         response = self.get_response(request)
         return response
-
-
+    
 class RestrictAccessByTimeMiddleware:
-    def __init__(self, get_response):
-        self.get_response = get_response
+    def __init__(self, get_reponse):
+        self.get_response = get_reponse
 
     def __call__(self, request):
-        # Get the current server time (24-hour format)
-        current_hour = datetime.now().hour
-        
-        # Define restricted hours (outside 9 AM to 6 PM)
-        if current_hour < 9 or current_hour >= 18:
-            # Check if the user is trying to access the messaging app (e.g., /chat/)
-            if request.path.startswith('/chat/'):
-                return HttpResponseForbidden("Access to the messaging app is restricted outside 9 AM to 6 PM.")
-        
-        # Proceed with the request if it's not restricted
+        current = datetime.datetime.now().hour
+
+        if current < 9 or current >= 18:
+            return HttpResponseForbidden(
+                "Access to the messaging app outside 9 AM to 6 PM"
+            )
         response = self.get_response(request)
         return response
-
-
 
 class OffensiveLanguageMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
-        # Dictionary to track IP addresses and their request timestamps
-        self.ip_requests = {}
+        self.requests_tracker = {}
 
     def __call__(self, request):
-        # Only track POST requests to the chat endpoint
-        if request.method == 'POST' and request.path.startswith('/chat/'):
-            # Get the user's IP address
+        if request.method == "POST" and "/messages/" in request.path:
             ip = self.get_client_ip(request)
-            now = datetime.now()
+            current_time = datetime.now()
 
-            # Initialize or update the request log for this IP
-            if ip not in self.ip_requests:
-                self.ip_requests[ip] = []
-            
-            # Remove timestamps older than 1 minute
-            self.ip_requests[ip] = [
-                timestamp for timestamp in self.ip_requests[ip]
-                if now - timestamp <= timedelta(minutes=1)
-            ]
-            
-            # Check the number of requests in the last 1 minute
-            if len(self.ip_requests[ip]) >= 5:
-                return HttpResponseForbidden("Message limit exceeded. Try again later.")
+            if ip not in self.requests_tracker:
+                self.requests_tracker[ip] = {"count": 1, "start_time": current_time}
+            else:
+                data = self.requests_tracker[ip]
+                elapsed_time = current_time - data["start_time"]
 
-            # Add the current request timestamp
-            self.ip_requests[ip].append(now)
 
-        # Proceed with the request if within limits
+                if elapsed_time > datetime.timedelta(minutes=1):
+                    self.requests_tracker[ip] = {"count": 1, "start_time": current_time}
+                else:
+                    # Enforce rate limiting
+                    if data["count"] >= 5:
+                        return JsonResponse(
+                            {"error": "Rate limit exceeded. Try again later."},
+                            status=429,
+                        )
+                    self.requests_tracker[ip]["count"] += 1
+
         response = self.get_response(request)
         return response
 
-    def get_client_ip(self, request):
-        """Extract the IP address from the request."""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    @staticmethod
+    def get_client_ip(request):
+        """
+        Retrieve the client's IP address from the request headers.
+        """
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
+            return x_forwarded_for.split(",")[0]
+        return request.META.get("REMOTE_ADDR")
 
-
-class RolepermissionMiddleware:
+class RolePermissionMiddleware:
+    """
+    Middleware to restrict access based on user roles (admin or moderator).
+    """
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        # Define restricted paths
-        restricted_paths = ['/admin-action/']
+        protected_paths = ["/admin/", "/moderator/"]
 
-        # Check if the user is trying to access a restricted path
-        if any(request.path.startswith(path) for path in restricted_paths):
-            # Check if the user is authenticated and has the correct role
+        if any(path in request.path for path in protected_paths):
             user = request.user
-            if not user.is_authenticated or user.role not in ['admin', 'moderator']:
-                return HttpResponseForbidden("You do not have permission to access this action.")
-        
-        # Proceed with the request
+
+            if not user.is_authenticated or user.role not in ["admin", "moderator"]:
+                return JsonResponse(
+                    {"error": "Access forbidden: Admin or Moderator role required."},
+                    status=403,
+                )
+
         response = self.get_response(request)
         return response
