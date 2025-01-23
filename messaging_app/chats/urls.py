@@ -1,18 +1,17 @@
 from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from rest_framework_nested.routers import NestedDefaultRouter
-from .views import MessageViewSet, ConversationViewSet
+from rest_framework_nested import routers
+from .views import ConversationViewSet, MessageViewSet, SignupView
 
-# Create a default router and register the ConversationViewSet
-router = DefaultRouter()
-router.register(r'conversations', ConversationViewSet, basename='conversation')
+# Create a root router
+router = routers.DefaultRouter()
+router.register(r'conversations', ConversationViewSet, basename='conversations')
 
-# Create a nested router to register MessageViewSet under the ConversationViewSet
-nested_router = NestedDefaultRouter(router, r'conversations', lookup='conversation')
+# Create a nested router for messages within a conversation
+nested_router = routers.NestedDefaultRouter(router, r'conversations', lookup='conversation')
 nested_router.register(r'messages', MessageViewSet, basename='conversation-messages')
 
-# Include the routes from the router and the nested router
 urlpatterns = [
-    path('api/', include(router.urls)),  # Include the default router (for conversations)
-    path('api/', include(nested_router.urls)),  # Include the nested router (for messages under conversations)
+    path('', include(router.urls)),        # Include default routes
+    path('', include(nested_router.urls)),  # Include nested routes
+    path('signup/', SignupView.as_view(), name='signup'),  # Add signup endpoint
 ]

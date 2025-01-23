@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -41,7 +42,7 @@ INSTALLED_APPS = [
     'chats',  # Add the chats app to the installed apps
     'django_filters',  # Add Django filters to the installed apps
     'rest_framework_nested',  # Add DRF nested to the installed apps
-    
+    'rest_framework_simplejwt',
 ]
 
 MIDDLEWARE = [
@@ -105,22 +106,21 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
 }
 
-from datetime import timedelta
-
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Access token lifetime
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # Refresh token lifetime
-    'ROTATE_REFRESH_TOKENS': False,                # Optionally rotate refresh tokens
-    'BLACKLIST_AFTER_ROTATION': True,              # Blacklist old tokens after rotation
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'USER_ID_FIELD': 'user_id',  # Specify your custom primary key field
+    'USER_ID_CLAIM': 'user_id',  # Include user_id in the JWT payload
 }
 
 # Internationalization

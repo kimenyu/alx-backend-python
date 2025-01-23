@@ -2,7 +2,7 @@
 URL configuration for messaging_app project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
+    https://docs.djangoproject.com/en/5.0/topics/http/urls/
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -15,17 +15,19 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
-from django.urls import path, include
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+from django.urls import include, path
+# from rest_framework_simplejwt.views import (
+#     TokenObtainPairView,
+#     TokenRefreshView,
+# )
+from chats.views import CustomTokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('chats.urls')),  # Include all chats API routes under '/api/'
-    path('api-auth/', include('rest_framework.urls')),  # Include DRF's authentication URLs (login/logout)
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/', include('chats.urls')),
+    path('api-auth/', include('rest_framework.urls')),  # Include DRF's login/logout URLs
+    # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 ]
-
-
