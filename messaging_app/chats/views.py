@@ -5,6 +5,7 @@ from .models import User, Message, Conversation
 from .serializers import MessageSerializer, ConversationSerializer
 from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
+from .permissions import IsParticipantOrSender
 
 class MessageViewSet(viewsets.ModelViewSet):
     queryset = Message.objects.all()
@@ -13,6 +14,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     filterset_fields = ['conversation']  # Filter by conversation
     ordering_fields = ['sent_at']  # Allow ordering by sent_at (to get most recent first)
     ordering = ['sent_at']  # Default ordering by sent_at
+    permission_classes = [IsParticipantOrSender]
     
     def create(self, request, *args, **kwargs):
         sender = request.user
@@ -32,6 +34,7 @@ class MessageViewSet(viewsets.ModelViewSet):
 class ConversationViewSet(viewsets.ModelViewSet):
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
+    permission_classes = [IsParticipantOrSender]
 
     def create(self, request, *args, **kwargs):
         participants = request.data.get('participants', [])

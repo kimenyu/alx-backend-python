@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'chats',  # Add the chats app to the installed apps
     'django_filters',  # Add Django filters to the installed apps
     'rest_framework_nested',  # Add DRF nested to the installed apps
+    
 ]
 
 MIDDLEWARE = [
@@ -109,7 +110,17 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+}
+
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),  # Access token lifetime
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),    # Refresh token lifetime
+    'ROTATE_REFRESH_TOKENS': False,                # Optionally rotate refresh tokens
+    'BLACKLIST_AFTER_ROTATION': True,              # Blacklist old tokens after rotation
 }
 
 # Internationalization
