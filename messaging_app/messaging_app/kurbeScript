@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Ensure Minikube is installed
+if ! command_exists minikube; then
+    echo "Error: Minikube is not installed. Please install it first."
+    echo "Follow installation instructions at: https://minikube.sigs.k8s.io/docs/start/"
+    exit 1
+fi
+
+# Ensure kubectl is installed
+if ! command_exists kubectl; then
+    echo "Error: kubectl is not installed. Please install it first."
+    echo "Follow installation instructions at: https://kubernetes.io/docs/tasks/tools/install-kubectl/"
+    exit 1
+fi
+
+# Start Minikube
+echo "Starting Minikube..."
+minikube start
+
+# Verify that the cluster is running
+echo "Verifying that the Kubernetes cluster is running..."
+kubectl cluster-info
+
+# Retrieve available pods
+echo "Retrieving available pods..."
+kubectl get pods --all-namespaces
+
+echo "Kubernetes cluster is running and accessible. Minikube is set up successfully!"

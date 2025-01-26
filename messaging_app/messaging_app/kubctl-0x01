@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Ensure kubectl is installed
+if ! command_exists kubectl; then
+    echo "Error: kubectl is not installed."
+    exit 1
+fi
+
+# Ensure wrk is installed
+if ! command_exists wrk; then
+    echo "Error: wrk is not installed. Install it before running the script."
+    exit 1
+fi
+
+# Deployment name (update this to match your deployment name)
+DEPLOYMENT_NAME="django-app"
+
+# Scale the deployment to 3 replicas
+echo "Scaling the deployment '$DEPLOYMENT_NAME' to 3 replicas..."
+kubectl scale deployment "$DEPLOYMENT_NAME" --replicas=3
+
+# Verify that the pods are running
+echo "Verifying that multiple pods are running..."
+kubectl get pods
+
+# Get the service URL (assuming your app is exposed via a LoadBalancer or NodePort)
+SERVICE_URL=$(kubectl get svc "$DEPLOYMENT_NAME" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+if [ -z "$SERVICE_URL" ]; then
+    echo "Error: Could not retrieve the service URL. Ensure your service is correctly exposed."
+    exit 1
+fi
+echo "App is available at: http://$SERVICE_URL"
+
+# Perform load testing using wrk
+echo "Performing load testing using wrk..."
+wrk -t4 -c100 -d30s "http://$SERVICE_URL"
+
+# Monitor resource usage using kubectl top
+echo "Monitoring resource usage..."
+kubectl top pods
