@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Apply the updated deployment file
+echo "Applying the updated deployment file..."
+kubectl apply -f blue_deployment.yaml
+
+# Monitor the rolling update progress
+echo "Monitoring the rolling update progress..."
+kubectl rollout status deployment/django-app-blue
+
+# Continuously test the app for downtime
+echo "Testing the app for downtime..."
+while true; do
+  # Replace <INGRESS_IP> with the IP address of your Ingress controller
+  # Replace <DOMAIN> with your domain name (if applicable)
+  curl -I http://<INGRESS_IP> || curl -I http://<DOMAIN>
+  sleep 1
+done &
+
+# Wait for the rollout to complete
+kubectl rollout status deployment/django-app-blue
+
+# Verify the rolling update is complete
+echo "Verifying the rolling update is complete..."
+kubectl get pods -l app=django-app
+
+# Stop the continuous curl test
+kill %1
+
+echo "Rolling update completed successfully!"

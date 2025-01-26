@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Deploy the blue version
+echo "Deploying the blue version..."
+kubectl apply -f blue_deployment.yaml
+
+# Deploy the green version
+echo "Deploying the green version..."
+kubectl apply -f green_deployment.yaml
+
+# Switch traffic to the green version
+echo "Switching traffic to the green version..."
+kubectl apply -f kubeservice.yaml
+
+# Wait for the green version to stabilize
+echo "Waiting for the green version to stabilize..."
+sleep 30
+
+# Check logs for errors in the green version
+echo "Checking logs for errors in the green version..."
+POD_NAME=$(kubectl get pods -l app=django-app,version=green -o jsonpath="{.items[0].metadata.name}")
+kubectl logs $POD_NAME
+
+# If no errors, delete the blue version
+echo "Deleting the blue version..."
+kubectl delete -f blue_deployment.yaml
+
+echo "Blue-green deployment completed successfully!"
