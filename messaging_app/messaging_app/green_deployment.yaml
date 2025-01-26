@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django-app-green
+  labels:
+    app: django-app
+    version: green
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: django-app
+      version: green
+  template:
+    metadata:
+      labels:
+        app: django-app
+        version: green
+    spec:
+      containers:
+        - name: django-app
+          image: <your-green-app-image>
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DJANGO_SETTINGS_MODULE
+              value: "project.settings"
