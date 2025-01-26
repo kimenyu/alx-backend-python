@@ -1,11 +1,6 @@
 import uuid
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-
-# Create your models here.
-
-# Custom User Manager
-
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin, Group, Permission
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -13,7 +8,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)  # Hashes the password
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
@@ -22,15 +17,11 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault("is_superuser", True)
         return self.create_user(email, password, **extra_fields)
 
-
-# User Model
 class User(AbstractBaseUser, PermissionsMixin):
-    user_id = models.UUIDField(
-        primary_key=True, default=uuid.uuid4, editable=False)
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     first_name = models.CharField(max_length=255, null=False)
     last_name = models.CharField(max_length=255, null=False)
     email = models.EmailField(unique=True, null=False)
-    # Use set_password for security
     password_hash = models.CharField(max_length=255, null=False)
     phone_number = models.CharField(max_length=15, null=True, blank=True)
     role = models.CharField(
@@ -43,6 +34,18 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
 
+    # Use unique related_name values to avoid clashes
+    groups = models.ManyToManyField(
+        Group,
+        related_name="custom_user_groups",  # Unique related_name
+        blank=True,
+    )
+    user_permissions = models.ManyToManyField(
+        Permission,
+        related_name="custom_user_permissions",  # Unique related_name
+        blank=True,
+    )
+
     objects = CustomUserManager()
 
     USERNAME_FIELD = "email"
@@ -53,6 +56,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
 
 
 # Conversation Model
