@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: messaging-app
+  labels:
+    app: messaging-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: messaging-app
+  template:
+    metadata:
+      labels:
+        app: messaging-app
+    spec:
+      containers:
+        - name: messaging-app
+          image: kimenyu/messaging-app:latest
+          ports:
+            - containerPort: 8000
