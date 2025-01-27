@@ -1,0 +1,13 @@
+2025-01-11 14:55:16.461383 - User: Anonymous - Path: /admin/login/
+Internal Server Error: /admin/login/
+Traceback (most recent call last):
+  File "C:\Python312\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "D:\alx\alx-backend-python\Django-Middleware-0x03\0x03-MessagingApp-Django\chats\middleware.py", line 32, in __call__
+    current = datetime.now().hour
+              ^^^^^^^^^^^^
+AttributeError: module 'datetime' has no attribute 'now'
+D:\alx\alx-backend-python\Django-Middleware-0x03\0x03-MessagingApp-Django\chats\middleware.py changed, reloading.
+2025-01-11 14:55:58.296942 - User: Anonymous - Path: /admin/login/
+2025-01-11 14:56:06.562222 - User: Anonymous - Path: /admin/login/
