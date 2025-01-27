@@ -1,66 +1,90 @@
 from rest_framework import serializers
 from .models import User, Conversation, Message
 
-
-# User Serializer
 class UserSerializer(serializers.ModelSerializer):
-    full_name = serializers.CharField(source='get_full_name', read_only=True)  # Derived field
+    """Serializer for the User model."""
 
+    confirm_password = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ['user_id', 'first_name', 'last_name', 'email', 'phone_number', 'role', 'created_at', 'full_name']
-        read_only_fields = ['user_id', 'created_at']
+        fields = '__all__'
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'email': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
 
-    def validate_email(self, value):
-        if "spam" in value:  # Example of a validation check
-            raise serializers.ValidationError("Invalid email containing 'spam'.")
-        return value
+    def validate(self, attrs):
+        """
+        Ensure password and confirm_password match.
+        """
+        password = attrs.get('password')
+        confirm_password = attrs.pop('confirm_password', None)
+        if password != confirm_password:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+        return attrs
+
+    def create(self, validated_data):
+        """
+        Overriding the create method to hash the password.
+        """
+        password = validated_data.pop('password')
+        groups = validated_data.pop('groups', [])
+        user_permissions = validated_data.pop('user_permissions', [])
+
+        # Use the create_user method to ensure password hashing
+        user = User.objects.create_user(
+            username=validated_data.get('username'),
+            email=validated_data.get('email'),
+            password=validated_data.get('password'),
+            first_name=validated_data.get('first_name'),
+            last_name=validated_data.get('last_name'),
+            phone_number=validated_data.get('phone_number'),
+        )
+        
+        user.set_password(password)
+        user.save()
+
+        user.groups.set(groups)
+        user.user_permissions.set(user_permissions)
+
+        return user
+
+    def update(self, instance, validated_data):
+        """
+        Overriding the update method to handle password hashing.
+        """
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if password:
+            instance.set_password(password)
+
+        instance.save()
+        return instance
 
 
-# Message Serializer
 class MessageSerializer(serializers.ModelSerializer):
-    sender_name = serializers.SerializerMethodField()  # Derived field to include sender's full name
+    """Serializer for the Message model."""
+    fullname = serializers.SerializerMethodField()
 
     class Meta:
         model = Message
-        fields = ['message_id', 'sender', 'sender_name', 'conversation', 'message_body', 'sent_at']
-        read_only_fields = ['message_id', 'sent_at', 'conversation']
+        fields = '__all__'
 
-    def get_sender_name(self, obj):
+    def get_fullname(self, obj):
+        """
+        Retrieve the full name of the message sender.
+        """
         return f"{obj.sender.first_name} {obj.sender.last_name}"
 
 
-# Conversation Serializer
 class ConversationSerializer(serializers.ModelSerializer):
-    participants = serializers.SerializerMethodField()  # Custom method to handle nested relationships
-    messages = MessageSerializer(many=True, read_only=True,)  # Nested messages
+    """Serializer for the Conversation model."""
+    messages = MessageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Conversation
-        fields = ['conversation_id', 'participants', 'messages', 'created_at']
-        read_only_fields = ['conversation_id', 'created_at']
-
-    def get_participants(self, obj):
-        return [f"{participant.first_name} {participant.last_name}" for participant in obj.participants.all()]
-
-
-class SignupSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = User
-        fields = ['email', 'first_name', 'last_name', 'password', 'phone_number', 'role']
-
-    def create(self, validated_data):
-        # Create a new user with the provided data
-        user = User.objects.create(
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            phone_number=validated_data.get('phone_number'),
-            role=validated_data['role'],
-        )
-        # Set the password securely
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
+        fields = '__all__'

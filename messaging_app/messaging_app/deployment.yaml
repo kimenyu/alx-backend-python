@@ -1,42 +1,56 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: django-app
+  name: messaging-app
   labels:
-    app: django-app
+    app: messaging-app
 spec:
-  replicas: 1
+  replicas: 1  # Adjust the number of replicas as needed
   selector:
     matchLabels:
-      app: django-app
+      app: messaging-app
   template:
     metadata:
       labels:
-        app: django-app
+        app: messaging-app
     spec:
       containers:
-      - name: django-app
-        image: malakehab2003/messaging_app-web:latest
+      - name: messaging-app
+        image: messaging-app:latest  # Replace with the appropriate image name and tag
         ports:
         - containerPort: 8000
         env:
-        - name: DJANGO_SETTINGS_MODULE
-          value: "messaging_app.settings"
-        - name: DEBUG
-          value: "False"
-        - name: ALLOWED_HOSTS
-          value: "*"
+        - name: MYSQL_DB
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: dbname
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: username
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: password
+        - name: MYSQL_HOST
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: host
+
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: django-app-service
-  labels:
-    app: django-app
+  name: messaging-app-service
 spec:
-  type: ClusterIP
-  ports:
-  - port: 8000
-    targetPort: 8000
   selector:
-    app: django-app
+    app: messaging-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: ClusterIP

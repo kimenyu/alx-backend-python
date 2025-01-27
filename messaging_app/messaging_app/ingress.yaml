@@ -1,20 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: django-app-ingress
+  name: django-messaging-ingress
   namespace: default
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/ssl-redirect: "false" # Disable SSL redirect for HTTP testing
 spec:
   rules:
-    - host: my-django-app.local
-      http:
-        paths:
-          - path: /api/
-            pathType: Prefix
-            backend:
-              service:
-                name: django-app-service
-                port:
-                  number: 8000
+  - host: <http://127.0.0.1:8000/>  
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: messaging-app-service  
+            port:
+              number: 8080 

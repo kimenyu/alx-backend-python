@@ -1,4 +1,4 @@
-name: CI for Messaging App
+name: Django CI
 
 on:
   push:
@@ -14,54 +14,53 @@ jobs:
 
     services:
       mysql:
-        image: mysql:8.0
+        image: mysql:5.7
         env:
+          MYSQL_ROOT_PASSWORD: rootpassword
           MYSQL_DATABASE: test_db
-          MYSQL_USER: test_user
-          MYSQL_PASSWORD: test_password
-          MYSQL_ROOT_PASSWORD: root_password
         ports:
           - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=3
+        options: --health-cmd="mysqladmin ping --silent" --health-interval=5s --health-timeout=2s --health-retries=3
 
     steps:
-      # Step 1: Checkout the repository
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v2
 
-      # Step 2: Set up Python
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
           python-version: 3.10
 
-      # Step 3: Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r messaging_app/requirements.txt
+          pip install flake8 coverage
 
-      # Step 4: Set up environment variables
-      - name: Set up environment variables
+      - name: Set up MySQL Database
         run: |
-          echo "DATABASE_ENGINE=django.db.backends.mysql" >> .env
-          echo "DATABASE_NAME=test_db" >> .env
-          echo "DATABASE_USER=test_user" >> .env
-          echo "DATABASE_PASSWORD=test_password" >> .env
-          echo "DATABASE_HOST=127.0.0.1" >> .env
-          echo "DATABASE_PORT=3306" >> .env
+          sudo apt-get install mysql-client
+          mysql -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD -e "CREATE DATABASE IF NOT EXISTS test_db;"
 
-      # Step 5: Run migrations
       - name: Run migrations
         run: |
-          python manage.py makemigrations
-          python manage.py migrate
+          python messaging_app/manage.py migrate
 
-      # Step 6: Run tests
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
-          python manage.py test
+          coverage run --source=messaging_app manage.py test
+          coverage report
+          coverage html
+
+      - name: Run flake8 linting
+        run: |
+          flake8 messaging_app --max-line-length=79 --exit-zero  # Customize flake8 options as needed
+
+      - name: Upload code coverage report as an artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: coverage-report
+          path: htmlcov/
+
+    # Fail the workflow if flake8 detects linting errors
+    fail-fast: true

@@ -1,27 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: django-app-green
-  labels:
-    app: django-app
-    version: green
+  name: django-messaging-green
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: django-app
-      version: green
+      app: django-messaging
+      version: green  # Unique label to distinguish green version
   template:
     metadata:
       labels:
-        app: django-app
-        version: green
+        app: django-messaging
+        version: green  # Label to identify the green version
     spec:
       containers:
-        - name: django-app
-          image: <your-green-app-image>
-          ports:
-            - containerPort: 8000
-          env:
-            - name: DJANGO_SETTINGS_MODULE
-              value: "project.settings"
+      - name: django-messaging
+        image: <your-docker-image>:green  # Replace with the new version image tag
+        ports:
+        - containerPort: 8080

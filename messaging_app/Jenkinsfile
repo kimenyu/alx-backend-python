@@ -3,9 +3,6 @@ pipeline {
 
     environment {
         GITHUB_CREDENTIALS = 'Brian_Kipkemboi-78'  
-        DOCKER_CREDENTIALS = 'Briankipkemboi' 
-        DOCKER_IMAGE = 'briankipkemboi78/messaging_app' 
-        DOCKER_TAG = 'latest'
     }
 
     stages {
@@ -42,23 +39,6 @@ pipeline {
                              reportDir: './',
                              reportFiles: 'report.xml',
                              reportName: 'Test Report'])
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                echo 'Building Docker image...'
-                sh 'docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} -f messaging_app/Dockerfile .'
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                echo 'Pushing Docker image to Docker Hub...'
-                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS}", usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                    sh 'docker push ${DOCKER_IMAGE}:${DOCKER_TAG}'
-                }
             }
         }
     }

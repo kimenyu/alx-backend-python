@@ -18,15 +18,15 @@ services:
       - MYSQL_HOST=db  # The database hostname should be the service name (db)
 
   db:
-    image: mysql:8.0  
+    image: mysql:8.0  # Using MySQL 8.0 version
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DB}  
+      MYSQL_DATABASE: ${MYSQL_DB}  # The default database for your Django app
     volumes:
-      - db_data:/var/lib/mysql  
+      - db_data:/var/lib/mysql  # Persist MySQL data using volumes
 
 volumes:
   db_data:
-    driver: local  
+    driver: local  # Local volume for database storage
